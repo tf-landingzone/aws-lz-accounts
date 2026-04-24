@@ -1,0 +1,38 @@
+# =============================================================================
+# Account Request: prod-app-001
+# =============================================================================
+# Drop a YAML file here to request a new account.
+# The pipeline detects new/changed files in accounts/requests/ and:
+#   1. Creates the account via Control Tower Account Factory (or uses existing)
+#   2. Waits for LZA baseline to complete
+#   3. Pushes IAM policies + SSO assignment into the account
+#   4. Stores final tfvars in accounts/<account_id>/
+#
+# required fields: account_name, email, ou, environment
+# =============================================================================
+
+account_name: "prod-app-001"
+email: "aws+prod-app-001@acme.com"
+ou: "workloads_prod"                # Must match a key in landing-zone.yaml organizational_units
+environment: "production"           # production | staging | development | sandbox
+
+# ── Optional: Override resolve_account.py auto-detection ─────────────────────
+# If omitted, these are auto-resolved from account_policy_map.yaml
+# based on account_name prefix rules.
+
+# sso:
+#   permission_set: "ProdAccess"
+#   group_name: "AWS-Prod-Engineers"
+
+# policies:
+#   prod_restricted:
+#     name: "ProdRestrictedAdmin"
+#     file: "policies/prod_restricted.json"
+#   viewer:
+#     name: "ViewerAccess-Custom"
+#     file: "policies/viewer.json"
+
+# ── Tags (merged with global tags) ──────────────────────────────────────────
+tags:
+  Team: "app-team-1"
+  CostCenter: "CC-5678"

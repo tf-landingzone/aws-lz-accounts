@@ -1,0 +1,81 @@
+# =============================================================================
+# Account Drift Sweep — Trigger (aws-lz-accounts)
+# =============================================================================
+# Dispatches the platform fleet deployer (account-setup-drift-sweep) via the
+# GitHub API. The platform workflow handles Terraform plan/apply across all
+# known accounts.
+#
+# Runs nightly at 02:00 UTC; also triggerable manually with filters.
+# =============================================================================
+
+name: Account Drift Sweep
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      ou_filter:
+        description: "Only sweep accounts in this OU (blank = all)"
+        required: false
+        type: string
+        default: ""
+      env_filter:
+        description: "Only sweep this environment (blank = all)"
+        required: false
+        type: choice
+        default: ""
+        options:
+          - ""
+          - production
+          - staging
+          - development
+          - sandbox
+      plan_only:
+        description: "Plan only, do not apply"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: account-drift-sweep
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-platform-sweep:
+    name: Dispatch platform drift sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch account-setup-drift-sweep on platform repo
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          github-token: ${{ secrets.PLATFORM_WORKFLOW_TOKEN }}
+          script: |
+            const response = await github.rest.actions.createWorkflowDispatch({
+              owner: 'tf-landingzone',
+              repo: 'aws-lz-platform',
+              workflow_id: 'account-setup-drift-sweep.yml',
+              ref: 'main',
+              inputs: {
+                ou_filter:  '${{ inputs.ou_filter || '' }}',
+                env_filter: '${{ inputs.env_filter || '' }}',
+                plan_only:  String(${{ inputs.plan_only || false }})
+              }
+            });
+            console.log(`Dispatched drift sweep (HTTP ${response.status})`);
+
+      - name: Summary
+        run: |
+          echo "## Drift Sweep Dispatched" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| OU Filter | \`${{ inputs.ou_filter || 'all' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Env Filter | \`${{ inputs.env_filter || 'all' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Plan Only | \`${{ inputs.plan_only || false }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Monitor progress in [aws-lz-platform Actions](https://github.com/tf-landingzone/aws-lz-platform/actions)" >> $GITHUB_STEP_SUMMARY

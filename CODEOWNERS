@@ -1,0 +1,14 @@
+# Default: cloud-ops + platform-eng review every change
+*                            @<org>/cloud-ops @<org>/platform-eng
+
+# Account requests can be approved by app-team owner + cloud-ops
+/accounts/requests/          @<org>/cloud-ops
+
+# Account-to-policy map gates SSO assignments — SecOps must approve
+/account_policy_map.yaml     @<org>/secops @<org>/cloud-ops
+
+# Schemas — platform-eng owns
+/schemas/                    @<org>/platform-eng
+
+# Reusable-workflow caller — must match platform repo's API contract
+/.github/workflows/account-setup.yml  @<org>/platform-eng @<org>/cloud-ops

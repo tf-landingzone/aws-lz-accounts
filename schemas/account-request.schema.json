@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://<org>/aws-lz-accounts/schemas/account-request.schema.json",
+  "title": "AWS Account Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_name", "email", "ou", "environment", "owner"],
+  "properties": {
+    "account_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$",
+      "description": "Lowercase, hyphenated. Max 50 chars. Prefix conveys env (prod-/staging-/dev-/sandbox-)."
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "pattern": "^aws-[a-z0-9-]+@.+$",
+      "description": "Must start with 'aws-' to keep root-account inboxes namespaced."
+    },
+    "ou": {
+      "type": "string",
+      "enum": ["Production", "Staging", "Development", "Sandbox", "Security", "Infrastructure"]
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["production", "staging", "development", "sandbox"]
+    },
+    "owner": {
+      "type": "string",
+      "format": "email"
+    },
+    "cost_center": {
+      "type": "string",
+      "pattern": "^CC-[0-9]{4,8}$"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    }
+  }
+}

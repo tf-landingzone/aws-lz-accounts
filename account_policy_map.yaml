@@ -1,0 +1,117 @@
+# =============================================================================
+# Account → Policy Map — single source of truth for pipeline resolution
+# =============================================================================
+# When the pipeline receives account_id + account_name, resolve_account.py
+# matches against this file to determine:
+#   1. Which IAM policies to push into the target account
+#   2. Which SSO group + permission set to assign
+#   3. Which security baseline to apply (optional override per-rule)
+#
+# Matching rules (in order):
+#   - Exact account_id match
+#   - account_name prefix match (first match wins among prefix rules)
+#   - "default" fallback (always matches)
+#
+# Security baseline defaults are set per-environment in resolve_account.py.
+# You can override specific settings per-rule using "security_baseline" key.
+#
+# IdP groups (Azure AD / Okta) are synced to Identity Center via SCIM.
+# We reference them by display name — no group creation needed.
+# =============================================================================
+
+# ── Exact account matches ────────────────────────────────────────────────────
+
+accounts:
+
+  # Security account — explicit ID match (strict baseline)
+  "111111111111":
+    policies:
+      admin:
+        name: "AdminAccess-Custom"
+        file: "policies/admin.json"
+      viewer:
+        name: "ViewerAccess-Custom"
+        file: "policies/viewer.json"
+    assignments:
+      security_admin:
+        permission_set_name: "SecurityAccess"
+        sso_group_name: "AWS-Security-Admins"
+    security_baseline:
+      enable_password_policy: true
+      enable_ebs_encryption: true
+      enable_s3_public_access_block: true
+      enable_access_analyzer: true
+
+# ── Prefix-based rules (matched against account_name) ───────────────────────
+
+prefix_rules:
+
+  - prefix: "prod-"
+    policies:
+      prod_restricted:
+        name: "ProdRestrictedAdmin"
+        file: "policies/prod_restricted.json"
+      viewer:
+        name: "ViewerAccess-Custom"
+        file: "policies/viewer.json"
+    assignments:
+      prod_access:
+        permission_set_name: "ProdAccess"
+        sso_group_name: "AWS-Prod-Engineers"
+    # Production: all security features enabled (environment default = production)
+
+  - prefix: "staging-"
+    policies:
+      prod_restricted:
+        name: "ProdRestrictedAdmin"
+        file: "policies/prod_restricted.json"
+      viewer:
+        name: "ViewerAccess-Custom"
+        file: "policies/viewer.json"
+    assignments:
+      staging_access:
+        permission_set_name: "StagingAccess"
+        sso_group_name: "AWS-Staging-Engineers"
+    # Staging: uses staging environment defaults
+
+  - prefix: "dev-"
+    policies:
+      dev_sandbox:
+        name: "DevSandboxAccess"
+        file: "policies/dev_sandbox.json"
+      viewer:
+        name: "ViewerAccess-Custom"
+        file: "policies/viewer.json"
+    assignments:
+      dev_access:
+        permission_set_name: "DevAccess"
+        sso_group_name: "AWS-Dev-Engineers"
+    # Development: relaxed password policy, no access analyzer
+
+  - prefix: "sandbox-"
+    policies:
+      dev_sandbox:
+        name: "DevSandboxAccess"
+        file: "policies/dev_sandbox.json"
+    assignments:
+      sandbox_access:
+        permission_set_name: "DevAccess"
+        sso_group_name: "AWS-Dev-Engineers"
+    # Sandbox: minimal hardening — EBS encryption and S3 block still enforced
+    security_baseline:
+      enable_password_policy: false
+      enable_s3_public_access_block: true
+      enable_access_analyzer: false
+
+# ── Default fallback (viewer-only, production security) ─────────────────────
+
+default:
+  policies:
+    viewer:
+      name: "ViewerAccess-Custom"
+      file: "policies/viewer.json"
+  assignments:
+    viewer_access:
+      permission_set_name: "ViewerAccess"
+      sso_group_name: "AWS-Viewers"
+  # Falls back to environment-inferred defaults

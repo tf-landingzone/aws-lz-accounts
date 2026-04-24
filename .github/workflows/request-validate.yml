@@ -1,0 +1,71 @@
+# =============================================================================
+# Account Request Validation — PR Check (aws-lz-accounts)
+# =============================================================================
+# Runs on PRs that add/modify accounts/requests/*.yaml
+# Validates YAML against schemas/account-request.schema.json
+# Checks for account name + email uniqueness across the fleet
+# =============================================================================
+
+name: Validate Account Requests
+
+on:
+  pull_request:
+    paths:
+      - 'accounts/requests/*.yaml'
+      - 'account_policy_map.yaml'
+    branches:
+      - main
+
+concurrency:
+  group: validate-requests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  schema:
+    name: JSON Schema validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - run: pip install check-jsonschema pyyaml
+      - name: Validate every request
+        run: |
+          set -euo pipefail
+          for f in accounts/requests/*.yaml; do
+            [[ "$f" == *.example ]] && continue
+            echo "→ $f"
+            check-jsonschema --schemafile schemas/account-request.schema.json "$f"
+          done
+
+  uniqueness:
+    name: Account name + email uniqueness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - run: pip install pyyaml
+      - run: |
+          python3 - <<'PY'
+          import glob, sys, yaml
+          names, emails, dupes = {}, {}, []
+          for f in sorted(glob.glob('accounts/requests/*.yaml')):
+              if f.endswith('.example'): continue
+              d = yaml.safe_load(open(f))
+              n, e = d['account_name'], d['email']
+              if n in names: dupes.append(f"name '{n}' in {f} and {names[n]}")
+              if e in emails: dupes.append(f"email '{e}' in {f} and {emails[e]}")
+              names[n], emails[e] = f, f
+          # Cross-check against existing accounts
+          import os, json
+          for d in glob.glob('accounts/*/account.json'):
+              j = json.load(open(d))
+              if j.get('account_name') in names:
+                  dupes.append(f"name '{j['account_name']}' already exists ({d})")
+          if dupes:
+              print('\n'.join('::error::'+x for x in dupes))
+              sys.exit(1)
+          PY
