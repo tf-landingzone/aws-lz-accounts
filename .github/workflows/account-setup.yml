@@ -202,15 +202,7 @@ jobs:
           while IFS= read -r REQ_FILE; do
             [[ -z "$REQ_FILE" ]] && continue
 
-            ACCOUNT_NAME=$(python3 -c "
-import yaml, sys
-try:
-    with open(sys.argv[1]) as f:
-        d = yaml.safe_load(f) or {}
-    print(d.get('account_name', ''))
-except Exception:
-    print('')
-" "$REQ_FILE")
+            ACCOUNT_NAME=$(python3 -c "import yaml,sys; d=(yaml.safe_load(open(sys.argv[1])) or {}); print(d.get('account_name',''))" "$REQ_FILE")
 
             if [[ -z "$ACCOUNT_NAME" ]]; then
               echo "::warning::No account_name in $REQ_FILE — skipping"
@@ -226,13 +218,7 @@ except Exception:
             for dir in accounts/*/; do
               META="${dir}account.json"
               if [[ -f "$META" ]]; then
-                STORED=$(python3 -c "
-import json, sys
-try:
-    print(json.load(open(sys.argv[1])).get('account_name',''))
-except Exception:
-    print('')
-" "$META" 2>/dev/null || echo "")
+                STORED=$(python3 -c "import json,sys; print((json.load(open(sys.argv[1])) or {}).get('account_name',''))" "$META" 2>/dev/null || echo "")
                 if [[ "$STORED" == "$ACCOUNT_NAME" ]]; then
                   ACCOUNT_ID=$(basename "$dir")
                   break
