@@ -12,7 +12,7 @@ on:
   workflow_dispatch:  # MANUAL ONLY — pull_request trigger disabled
 
 concurrency:
-  group: validate-requests-${{ github.event.pull_request.number }}
+  group: validate-requests-${{ github.run_id }}
   cancel-in-progress: true
 
 permissions:

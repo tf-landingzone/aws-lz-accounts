@@ -252,7 +252,11 @@ jobs:
           fi
 
           echo "Starting fleet deployer for ${#ACCOUNT_IDS[@]} account(s)..."
-          # deploy_accounts.py lives in the checked-out platform repo
+          # deploy_accounts.py lives in the checked-out platform repo.
+          # LZ_ACCOUNTS_DIR points it at THIS repo's accounts/ directory.
+          # LZ_RESOLVE_SCRIPT points it at THIS repo's resolve_account.py.
+          LZ_ACCOUNTS_DIR="$(pwd)/accounts" \
+          LZ_RESOLVE_SCRIPT="$(pwd)/scripts/resolve_account.py" \
           python3 platform/scripts/deploy_accounts.py \
             --account-id "${ACCOUNT_IDS[@]}" \
             --max-parallel 10
