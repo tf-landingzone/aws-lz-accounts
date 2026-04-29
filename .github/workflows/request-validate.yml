@@ -9,12 +9,7 @@
 name: Validate Account Requests
 
 on:
-  pull_request:
-    paths:
-      - 'accounts/requests/*.yaml'
-      - 'account_policy_map.yaml'
-    branches:
-      - main
+  workflow_dispatch:  # MANUAL ONLY — pull_request trigger disabled
 
 concurrency:
   group: validate-requests-${{ github.event.pull_request.number }}

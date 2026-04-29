@@ -11,9 +11,7 @@
 name: Account Drift Sweep
 
 on:
-  schedule:
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+  workflow_dispatch:  # MANUAL ONLY — schedule disabled
     inputs:
       ou_filter:
         description: "Only sweep accounts in this OU (blank = all)"

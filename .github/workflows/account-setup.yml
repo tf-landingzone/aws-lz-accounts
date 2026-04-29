@@ -40,11 +40,7 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    paths:
-      - 'accounts/requests/*.yaml'
-    branches:
-      - main
+  # push trigger disabled — manual only for now
 
 concurrency:
   group: account-setup-${{ github.event.inputs.account_id || github.sha }}
